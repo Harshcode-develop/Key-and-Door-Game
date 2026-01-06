@@ -82,7 +82,7 @@ export const generateGameLayout = (size: number, difficulty: Difficulty, numKeys
 } => {
   let attempts = 0;
   // If strict, try more; if not strict, try less (should find one quickly)
-  const maxAttempts = strictMode ? 200 : 50; 
+  const maxAttempts = strictMode ? 500 : 50; 
 
   while (attempts < maxAttempts) {
     attempts++;
