@@ -1,3 +1,4 @@
+import React from "react";
 import { Key, DoorClosed, User } from "lucide-react";
 import type { CellType } from "../types";
 
@@ -10,7 +11,7 @@ interface CellProps {
   isVisited?: boolean; // Path trace
 }
 
-export function Cell({
+function CellComponent({
   type,
   isVisible,
   isRevealed,
@@ -87,3 +88,5 @@ export function Cell({
     </div>
   );
 }
+
+export const Cell = React.memo(CellComponent);

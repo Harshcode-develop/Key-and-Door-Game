@@ -54,7 +54,7 @@ export function ResultScreen({
           <p className="text-gray-600 text-lg">
             You cleared{" "}
             <span className="font-bold text-gray-900">
-              {gameState.roundsWon}/3
+              {Math.min(gameState.roundsWon, 3)}/3
             </span>{" "}
             rounds.
             {!passed && (

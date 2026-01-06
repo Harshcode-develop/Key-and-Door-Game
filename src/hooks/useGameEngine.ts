@@ -13,6 +13,7 @@ export const useGameEngine = () => {
     startPos: { x: 0, y: 0 },
     doorPos: { x: 0, y: 0 },
     keyPos: [],
+    initialKeyPos: [],
     collectedKeys: 0,
     invisibleWalls: [],
     revealedWalls: [],
@@ -60,6 +61,7 @@ export const useGameEngine = () => {
         startPos: layout.startPos,
         doorPos: layout.doorPos,
         keyPos: layout.keyPos,
+        initialKeyPos: layout.keyPos,
         collectedKeys: 0,
         invisibleWalls: layout.invisibleWalls,
         revealedWalls: [],
@@ -193,6 +195,9 @@ export const useGameEngine = () => {
           visitedCells: [],
           lastHitWall: hitWallData,
           revealedWalls: prev.revealedWalls.some(rw => isSamePos(rw, hitWall)) ? prev.revealedWalls : [...prev.revealedWalls, hitWall],
+          // Reset Keys on Collision
+          collectedKeys: 0,
+          keyPos: prev.initialKeyPos, 
         };
       }
 
@@ -274,6 +279,7 @@ export const useGameEngine = () => {
          startPos: newLayout.startPos,
          doorPos: newLayout.doorPos,
          keyPos: newLayout.keyPos,
+         initialKeyPos: newLayout.keyPos,
          invisibleWalls: newLayout.invisibleWalls,
          revealedWalls: [], 
          visitedCells: [],
@@ -336,7 +342,8 @@ export const useGameEngine = () => {
       if (prev.status === 'playing') return prev;
 
       const isCampaign = prev.mode === 'campaign';
-      const newRoundsWon = won ? prev.roundsWon + 1 : prev.roundsWon;
+      const maxRounds = ROUND_CONFIGS.length;
+      const newRoundsWon = won ? Math.min(prev.roundsWon + 1, maxRounds) : prev.roundsWon;
       
       // Record current round's outcome for history
       // Record current round's outcome for history

@@ -70,14 +70,19 @@ const isValidLayout = (
   return true;
 };
 
-export const generateGameLayout = (size: number, difficulty: Difficulty, numKeys: number): {
+// Manhattan distance
+const getDistance = (p1: Position, p2: Position) => Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+
+// Add strictMode param defaulting to true
+export const generateGameLayout = (size: number, difficulty: Difficulty, numKeys: number, strictMode: boolean = true): {
   startPos: Position;
   doorPos: Position;
   keyPos: Position[];
   invisibleWalls: Position[];
 } => {
   let attempts = 0;
-  const maxAttempts = 100;
+  // If strict, try more; if not strict, try less (should find one quickly)
+  const maxAttempts = strictMode ? 200 : 50; 
 
   while (attempts < maxAttempts) {
     attempts++;
@@ -88,48 +93,141 @@ export const generateGameLayout = (size: number, difficulty: Difficulty, numKeys
     usedPositions.push(startPos);
 
     // 2. Place Door
-    const doorPos = getRandomPos(size, usedPositions);
-    usedPositions.push(doorPos);
+    // Strict: Min distance at least half board. Non-strict: Random.
+    const minDist = strictMode ? Math.floor(size / 1.5) : 1; 
+    let doorPos: Position;
+    let validDoor = false;
+    
+    // Attempt to place door matching criteria
+    for(let i=0; i<50; i++) {
+        doorPos = getRandomPos(size, usedPositions);
+        // In strict mode check distance. In non-strict, any pos not used is fine.
+        if (!strictMode || getDistance(startPos, doorPos) >= minDist) {
+            validDoor = true;
+            break;
+        }
+    }
+    
+    // If we couldn't place strict door, and we are distinct, maybe we retry?
+    // If !validDoor, we just continue to next attempt if we want to be strict.
+    if (!validDoor && strictMode) continue; 
+    // If non-strict and failed (unlikely), just take the last generated random pos if unique
+    // Actually simplicity: if !validDoor and strict, we failed this attempt.
+    
+    usedPositions.push(doorPos!); 
 
     // 3. Place Keys
     const keyPos: Position[] = [];
-    for (let i = 0; i < numKeys; i++) {
-      const key = getRandomPos(size, usedPositions);
+    let keysPlaced = 0;
+    while (keysPlaced < numKeys) {
+      let key: Position = { x: 0, y: 0 };
+      let validKey = false;
+      for(let i=0; i<50; i++) {
+          key = getRandomPos(size, usedPositions);
+          if (!strictMode) {
+              validKey = true;
+              break;
+          }
+          // Strict checks
+          const distToDoor = getDistance(doorPos!, key);
+          const distToStart = getDistance(startPos, key);
+          const minKeyDist = Math.floor(size / 2);
+
+          if (distToDoor >= minKeyDist && distToStart >= minKeyDist) {
+             validKey = true;
+             break;
+          }
+      }
+      if (!validKey) {
+         if (strictMode) {
+             // If we can't place a strict key, fail this layout attempt
+             break; 
+         }
+         key = getRandomPos(size, usedPositions); // Fallback
+      }
       keyPos.push(key);
       usedPositions.push(key);
+      keysPlaced++;
     }
+    
+    // If we broke out of key loop due to strict failure
+    if (keyPos.length < numKeys) continue;
 
     // 4. Generate Invisible Walls
     const totalCells = size * size;
     let wallCount = 0;
     
     switch(difficulty) {
-      case 'medium': wallCount = Math.floor(totalCells * 0.30); break; 
-      case 'hard': wallCount = Math.floor(totalCells * 0.40); break; 
+      case 'medium': wallCount = Math.floor(totalCells * 0.60); break; // Increased 55->60
+      case 'hard': wallCount = Math.floor(totalCells * 0.75); break;   // Increased 70->75
     }
 
     const invisibleWalls: Position[] = [];
     
-    // We clone usedPositions for wall generation attempts in this inner loop?
-    // No, we just generate full set then check.
+    // DOOR GUARDS
+    // Strict: Block all but 1. Non-strict: Block 1 or 2 random.
+    const doorNeighbors = [
+      { x: doorPos!.x + 1, y: doorPos!.y },
+      { x: doorPos!.x - 1, y: doorPos!.y },
+      { x: doorPos!.x, y: doorPos!.y + 1 },
+      { x: doorPos!.x, y: doorPos!.y - 1 },
+    ].filter(p => 
+      p.x >= 0 && p.x < size && p.y >= 0 && p.y < size &&
+      !isSamePos(p, startPos) && 
+      !keyPos.some(k => isSamePos(k, p)) &&
+      !isSamePos(p, doorPos!)
+    );
+
+    // Shuffle neighbors
+    for (let i = doorNeighbors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [doorNeighbors[i], doorNeighbors[j]] = [doorNeighbors[j], doorNeighbors[i]];
+    }
+
+    const numGuards = (strictMode && doorNeighbors.length > 0) 
+        ? Math.max(1, doorNeighbors.length - 1) // Block all but 1
+        : Math.floor(Math.random() * 2); // 0 or 1 for easy/fallback
+
+    for (let i = 0; i < numGuards; i++) {
+        invisibleWalls.push(doorNeighbors[i]);
+        usedPositions.push(doorNeighbors[i]); 
+    }
+
+    // Random Walls
+    // For coverage, we want to reach target wallCount.
+    let remainingWalls = wallCount - invisibleWalls.length;
+    // ensure non-negative
+    if (remainingWalls < 0) remainingWalls = 0;
+
     const tempUsed = [...usedPositions];
     
-    for (let i = 0; i < wallCount; i++) {
+    for (let i = 0; i < remainingWalls; i++) {
         const wall = getRandomPos(size, tempUsed);
         invisibleWalls.push(wall);
         tempUsed.push(wall);
     }
 
     // 5. Validation
-    if (isValidLayout(size, startPos, keyPos, doorPos, invisibleWalls)) {
-      return { startPos, doorPos, keyPos, invisibleWalls };
+    if (isValidLayout(size, startPos, keyPos, doorPos!, invisibleWalls)) {
+      return { startPos, doorPos: doorPos!, keyPos, invisibleWalls };
     }
   }
 
-  // Fallback: Return a very simple layout or just the last attempt (even if invalid, to prevent crash)
-  // Better: Return layout with NO walls if specific fails, or minimal walls.
-  // Let's just return what we have but maybe fewer walls.
-  // Re-run simplified:
-  return generateGameLayout(size, 'medium', numKeys); // Fallback to medium if hard fails
-  // Potential recursion depth issue but unlikely with 100 attempts.
+  // Fallback: If strict generation failed 200 times, try NON-STRICT.
+  // This ensures we always return a valid playable board, even if it's "easier" than requested.
+  // This prevents infinite loops or crashes.
+  if (strictMode) {
+      console.warn("Strict generation failed, falling back to relaxed constraints.");
+      return generateGameLayout(size, difficulty, numKeys, false);
+  }
+  
+  // If even non-strict fails (extremely unlikely), return basic layout
+  // We throw or return distinct positions with 0 walls.
+  // Minimal fallback:
+  return {
+      startPos: {x:0, y:0},
+      doorPos: {x: size-1, y: size-1},
+      keyPos: [{x: size-1, y:0}],
+      invisibleWalls: []
+  };
 };

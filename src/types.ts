@@ -24,6 +24,7 @@ export interface GameState {
   startPos: Position;
   doorPos: Position;
   keyPos: Position[]; // Array because some levels have 2 keys
+  initialKeyPos: Position[]; // For resetting keys on collision
   collectedKeys: number;
   invisibleWalls: Position[];
   revealedWalls: Position[]; // For final result

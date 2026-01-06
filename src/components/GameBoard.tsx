@@ -18,15 +18,11 @@ export function GameBoard({ gameState, showRevealed = false }: GameBoardProps) {
   } = gameState;
 
   // Grid Style
-  // Fixed cell size to ensure stability across rounds
-  // 10x10 * 3rem (48px) = 480px + gaps -> fits in 500pxish
-  // 6x6 * 3rem = 288px -> smaller board
-  const cellSize = "3rem"; // 48px
-  // sm: 3rem, base: 2.5rem?
-
+  // Fluid layout: Use 1fr to fill available width, letting the container control size.
+  // We apply aspect-square to the CONTAINER to ensure the grid itself remains square.
   const gridStyle = {
-    gridTemplateColumns: `repeat(${gridSize}, ${cellSize})`,
-    gridTemplateRows: `repeat(${gridSize}, ${cellSize})`,
+    gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+    gridTemplateRows: `repeat(${gridSize}, 1fr)`,
   };
 
   // Generate cells
@@ -116,7 +112,7 @@ export function GameBoard({ gameState, showRevealed = false }: GameBoardProps) {
 
   return (
     <div
-      className="gap-1 mx-auto p-4 rounded-xl grid bg-gray-200/50 shadow-inner w-max transition-all duration-300"
+      className="gap-1 mx-auto p-2 rounded-xl grid bg-gray-200/50 shadow-inner w-full max-w-[500px] aspect-square transition-all duration-300"
       style={gridStyle}
     >
       {renderCells()}

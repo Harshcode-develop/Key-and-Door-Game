@@ -1,4 +1,3 @@
-import { ROUND_CONFIGS } from "./types";
 import { useEffect } from "react";
 import { useGameEngine } from "./hooks/useGameEngine";
 import { GameBoard } from "./components/GameBoard";
@@ -93,7 +92,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans select-none text-black">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden font-sans select-none text-black">
       {/* Back to Menu Button */}
       <button
         onClick={goToMenu}
@@ -109,19 +108,8 @@ function App() {
         <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] rounded-full bg-purple-300 blur-[120px]" />
       </div>
 
-      <div className="z-10 w-full max-w-lg flex flex-col gap-6 items-center">
-        {/* Header */}
-        <div className="flex flex-col">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Round {gameState.currentRound + 1}{" "}
-            <span className="text-gray-400 text-lg">
-              / {ROUND_CONFIGS.length}
-            </span>
-          </h2>
-          <p className="text-xs text-gray-500 uppercase tracking-widest">
-            Cognitive Assessment Game
-          </p>
-        </div>
+      <div className="z-10 w-full max-w-[500px] flex flex-col gap-3 items-center">
+        {/* Header removed - using GameControls display instead */}
 
         <GameControls
           timeLeft={gameState.timeLeft}
@@ -136,7 +124,7 @@ function App() {
 
         <TouchControls onMove={movePlayer} />
 
-        <div className="hidden sm:block text-xs text-gray-500 mt-4">
+        <div className="hidden sm:block text-xs text-gray-500 mt-2">
           Use <span className="font-bold text-gray-700">Arrow Keys</span> to
           Move
         </div>
