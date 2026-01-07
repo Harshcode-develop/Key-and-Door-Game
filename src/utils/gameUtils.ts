@@ -122,6 +122,13 @@ export const generateGameLayout = (size: number, difficulty: Difficulty, numKeys
     while (keysPlaced < numKeys) {
       let key: Position = { x: 0, y: 0 };
       let validKey = false;
+      
+      // Dynamic Thresholds based on grid size
+      // For 5x5: Half board is 2.5 -> 2. So distance >= 2. (Corner to corner is 8 manhattan).
+      // We want stricter. For 5x5, maybe >= 3?
+      // For 10x10, half is 5.
+      const distThreshold = size <= 5 ? Math.floor(size / 1.5) : Math.floor(size / 2); // Stricter for small grids
+
       for(let i=0; i<50; i++) {
           key = getRandomPos(size, usedPositions);
           if (!strictMode) {
@@ -131,9 +138,15 @@ export const generateGameLayout = (size: number, difficulty: Difficulty, numKeys
           // Strict checks
           const distToDoor = getDistance(doorPos!, key);
           const distToStart = getDistance(startPos, key);
-          const minKeyDist = Math.floor(size / 2);
+          
+          // Check against EXISTING keys too
+          const distToOtherKeys = keyPos.length > 0 
+            ? Math.min(...keyPos.map(k => getDistance(k, key))) 
+            : Infinity;
 
-          if (distToDoor >= minKeyDist && distToStart >= minKeyDist) {
+          if (distToDoor >= distThreshold && 
+              distToStart >= distThreshold &&
+              distToOtherKeys >= distThreshold) {
              validKey = true;
              break;
           }
